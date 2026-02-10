@@ -4,7 +4,7 @@ from django.db import models
 class Organiser(models.Model):
     organiser_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     name = models.CharField(max_length=100)
-    phone = models.CharField(max_length=20)
+    phone = models.CharField(max_length=10)
     email = models.CharField(max_length=150, unique=True)
     updated_at = models.DateTimeField(auto_now=True)   
     created_at = models.DateTimeField(auto_now_add=True)  
@@ -16,7 +16,7 @@ class Organiser(models.Model):
 class User(models.Model):
     user_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     name = models.CharField(max_length=100)
-    phone = models.CharField(max_length=20)
+    phone = models.CharField(max_length=10)
     email = models.CharField(max_length=150, unique=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
