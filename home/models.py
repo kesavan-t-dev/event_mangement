@@ -2,7 +2,7 @@ import uuid
 from django.db import models
 
 class Organiser(models.Model):
-    Organiser_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    organiser_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=20)
     email = models.CharField(max_length=150, unique=True)
@@ -14,7 +14,7 @@ class Organiser(models.Model):
         db_table = "organiser" 
 
 class User(models.Model):
-    User_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    user_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=20)
     email = models.CharField(max_length=150, unique=True)
