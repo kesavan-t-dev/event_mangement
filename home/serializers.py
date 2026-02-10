@@ -4,22 +4,32 @@ from .models import Organiser, Event, User, Booking
 class OrganiserSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organiser
-        fields = '__all__'
+        fields = ['organiser_id','name','phone','email']
 
 
 class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
-        fields = '__all__'
+        fields = [
+            'even_id',
+            'organisers',
+            'event_title',
+            'event_type',
+            'date',
+            'location',
+            'available_seat',
+            'total_seats',
+            'start_time'
+        ]
 
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = '__all__'
+        fields = ['user_id','name','phone','email']
 
 
 class BookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
-        fields = '__all__'
+        fields = ['booking_id','user','event']
