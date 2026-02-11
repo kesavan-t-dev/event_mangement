@@ -32,7 +32,7 @@ class Event(models.Model):
     event_type = models.CharField(max_length=100)
     date = models.DateField()
     location = models.CharField(max_length=300)
-    available_seat = models.IntegerField()
+    available_seats = models.IntegerField()
     total_seats = models.IntegerField()
     start_time = models.TimeField()
     updated_at = models.DateTimeField(auto_now=True)

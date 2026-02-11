@@ -17,7 +17,7 @@ class EventSerializer(serializers.ModelSerializer):
             'event_type',
             'date',
             'location',
-            'available_seat',
+            'available_seats',
             'total_seats',
             'start_time'
         ]

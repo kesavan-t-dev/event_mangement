@@ -33,7 +33,7 @@ def event_create(request):
         start_time = request.data.get('start_time')
         if Event.objects.filter(event_title=title, date=event_date, start_time=start_time).exists():
             return custom_response(
-                f"An event is already scheduled for {event_date} at {start_time}", 
+                f"An event is already scheduled", 
                 400
             )
 
