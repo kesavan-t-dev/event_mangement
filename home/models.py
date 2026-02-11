@@ -27,7 +27,7 @@ class User(models.Model):
 
 class Event(models.Model):
     event_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
-    organisers = models.ForeignKey(Organiser, on_delete=models.CASCADE, db_column="org_id")
+    organisers_id = models.ForeignKey(Organiser, on_delete=models.CASCADE, db_column="org_id")
     event_title = models.CharField(max_length=150)
     event_type = models.CharField(max_length=100)
     date = models.DateField()

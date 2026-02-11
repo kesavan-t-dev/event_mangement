@@ -25,10 +25,10 @@ def user_create(request):
 def user_event_register(request):
     return services.user_event_register(request)
 
-@api_view(['PATCH'])
-def update_organiser(request, phone): 
-    return services.update_organiser(request, phone)
+@api_view(['PUT'])
+def event_update(request, id):
+    return services.event_update(request, id)
 
-@api_view(["PUT"])
-def booking_update(request, phone):
-    return services.update_booking(request, phone)
+@api_view(['PATCH'])
+def user_update(request, id):
+    return services.user_update(request, id)

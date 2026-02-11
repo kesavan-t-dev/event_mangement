@@ -5,46 +5,19 @@ from rest_framework.response import Response
 from django.db.models import F
 
 def get_all_organisers():
-    organisers = Organiser.objects.all()
-    serializer = OrganiserSerializer(organisers, many=True)
+    organiser_id = Organiser.objects.all()
+    serializer = OrganiserSerializer(organiser_id, many=True)
     return custom_response("Organisers retrieved successfully", status.HTTP_200_OK, serializer.data)
 
 def get_all_events():
-    events = Event.objects.all()
-    serializer = EventSerializer(events, many=True)
+    events_id = Event.objects.all()
+    serializer = EventSerializer(events_id, many=True)
     return custom_response("Events retrieved successfully", status.HTTP_200_OK, serializer.data)
 
 def get_all_users():
-    users = User.objects.all()
-    serializer = UserSerializer(users, many=True)
+    users_id = User.objects.all()
+    serializer = UserSerializer(users_id, many=True)
     return custom_response("Users retrieved successfully", status.HTTP_200_OK, serializer.data)
-
-
-def update_organiser(request, phone):
-    try:
-        if request.method != 'PATCH':
-            return custom_response(
-                f"Method {request.method} not allowed. Allowed: PATCH",
-                status.HTTP_405_METHOD_NOT_ALLOWED
-            )
-
-        organiser = Organiser.objects.get(phone=phone)
-
-        serializer = OrganiserSerializer(organiser, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return custom_response(
-                "Organiser updated successfully (PATCH)",
-                status.HTTP_200_OK,
-                serializer.data
-            )
-
-        return custom_response("Validation failed", status.HTTP_400_BAD_REQUEST, serializer.errors)
-
-    except Organiser.DoesNotExist:
-        return custom_response("Organiser not found", status.HTTP_404_NOT_FOUND)
-    except Exception as e:
-        return custom_response(f"Internal server error: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 def event_create(request):
@@ -54,16 +27,26 @@ def event_create(request):
                 f"Method {request.method} not allowed. Allowed: POST",
                 status.HTTP_405_METHOD_NOT_ALLOWED
             )
+        
+        title = request.data.get('event_title')
+        event_date = request.data.get('date')
+        start_time = request.data.get('start_time')
+        if Event.objects.filter(event_title=title, date=event_date, start_time=start_time).exists():
+            return custom_response(
+                f"An event is already scheduled for {event_date} at {start_time}", 
+                400
+            )
+
         serializer = EventSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return custom_response("Event(s) created successfully", status.HTTP_201_CREATED, serializer.data)
-
-        return custom_response("Validation failed", status.HTTP_400_BAD_REQUEST, serializer.errors)
+            return custom_response("Event created successfully", 201, serializer.data)
+        
+        return custom_response("Validation failed", 400, serializer.errors)
 
     except Exception as e:
-        return custom_response(f"Internal server error: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR, serializer.errors)
-
+        return custom_response(f"Internal server error: {str(e)}", 500)
+    
 def user_create(request):
     try:
         if request.method != 'POST':
@@ -82,81 +65,84 @@ def user_create(request):
     except Exception as e:
         return custom_response(f"Internal server error: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR, serializer.errors)
 
-def update_booking(request, phone):
-    try:
-        if request.method != 'PUT':
-            return custom_response(
-                "Method not allowed. Allowed: PUT",
-                status.HTTP_405_METHOD_NOT_ALLOWED
-            )
-        user = User.objects.get(phone=phone)
-        booking = Booking.objects.filter(user=user).first()
-        
-        if not booking:
-            return custom_response("No booking found for this phone", status.HTTP_404_NOT_FOUND)
-        
-        new_event_id = request.data.get('event')
-        if new_event_id and int(new_event_id) != booking.event.id:
-            new_event = Event.object.get(pk = new_event_id)
-
-            if new_event.available_seat <= 0:
-                return custom_response("No seats available", status.HTTP_404_NOT_FOUND)
-            old_event = booking.event
-
-            new_event.available_seat = F('available_seat') - 1
-            new_event.save()
-
-            old_event.available_seat = F('available_seat') + 1
-            old_event.save()
-
-            serializer = BookingSerializer(booking, data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return custom_response("Booking updated successfully", status.HTTP_200_OK, serializer.data)
-            else:
-                new_event.available_seat = F('available_seat') + 1
-                new_event.save()
-                old_event.available_seat = F('available_seat') - 1
-                old_event.save()
-                return custom_response("Validation failed", status.HTTP_400_BAD_REQUEST, serializer.errors)
-        
-    except Exception as e:
-        return custom_response(f"Internal server error: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 def user_event_register(request):
-    user_id = request.data.get('user')
-    event_id = request.data.get('event')
-
     try:
         if request.method != 'POST':
             return custom_response(
                 "Method not allowed. Allowed: POST",
                 status.HTTP_405_METHOD_NOT_ALLOWED
             )
-        user = User.objects.get(pk=user_id)
-        event = Event.objects.get(pk=event_id)
-
-        if Booking.objects.filter(user=user, event=event).exists():
-            return custom_response("User already registered for this event", status.HTTP_404_NOT_FOUND)
-
-        if event.available_seat <= 0:
-            return custom_response("No seats available for this event", status.HTTP_404_NOT_FOUND)
-
-        serializer = BookingSerializer(data=request.data)
-        
-        if serializer.is_valid():
-            event.available_seat = F('available_seat') - 1
-            event.save()
             
-            serializer.save()
-            return custom_response("Registration successful", status.HTTP_201_CREATED, serializer.data)
+        user_id = request.data.get('user_id')
+        event_id = request.data.get('event_id')
+
+        user_obj = User.objects.filter(pk=user_id).first()
+        if not user_obj:
+            return custom_response("User not found", 404)
+
+        event_obj = Event.objects.filter(pk=event_id).first()
+        if not event_obj:
+            return custom_response("Event not found", 404)
+
+        if Booking.objects.filter(user=user_obj, event=event_obj).exists():
+            return custom_response("User already registered", 400)
+
+        if event_obj.available_seat <= 0:
+            return custom_response("No seats available", 400)
+
+        new_booking = Booking.objects.create(
+            user=user_obj, 
+            event=event_obj, 
+            is_active=True
+        )
         
-        return custom_response("Validation error",status.HTTP_400_BAD_REQUEST, serializer.errors)
+        event_obj.available_seat = F('available_seat') - 1
+        event_obj.save()
+        serializer = BookingSerializer(new_booking)
+        
+        return custom_response("Registration successful", 201, serializer.data)
 
-    except (User.DoesNotExist, Event.DoesNotExist):
-        return custom_response("User or Event not found", status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return custom_response(f"Internal server error: {str(e)}", 500)
 
+def event_update(request, id):
+    try:
+        if request.method != 'PUT':
+            return custom_response(f"Method {request.method} not allowed. Allowed: PUT", 405)
+
+        event_instance = Event.objects.filter(pk=id).first()
+        if not event_instance:
+            return custom_response("Event not found", 404)
+
+        serializer = EventSerializer(event_instance, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return custom_response("Event updated successfully", 200, serializer.data)
+        
+        return custom_response("Validation failed", 400, serializer.errors)
+
+    except Exception as e:
+        return custom_response(f"Internal server error: {str(e)}", 500)
+
+def user_update(request, id):
+    try:
+        if request.method != 'PATCH':
+            return custom_response(f"Method {request.method} not allowed. Allowed: PATCH", 405)
+
+        user_instance = User.objects.filter(pk=id).first()
+        if not user_instance:
+            return custom_response("User not found", 404)
+
+        serializer = UserSerializer(user_instance, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return custom_response("User updated successfully", 200, serializer.data)
+        
+        return custom_response("Validation failed", 400, serializer.errors)
+
+    except Exception as e:
+        return custom_response(f"Internal server error: {str(e)}", 500)
 
 def custom_response(message, status_code, data=None):
     return Response({
