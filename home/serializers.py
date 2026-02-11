@@ -11,7 +11,6 @@ class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = [
-            'even_id',
             'organisers',
             'event_title',
             'event_type',
