@@ -87,9 +87,12 @@ def update_booking(request, phone):
                 f"Method {request.method} not allowed. Allowed: PUT",
                 status.HTTP_405_METHOD_NOT_ALLOWED
             )
-
-        booking = Booking.objects.get(phone=phone)
-
+        user = User.objects.get(phone=phone)
+        booking = Booking.objects.filter(user=user).first()
+        
+        if not booking:
+            return custom_response("No booking found for this phone", status.HTTP_404_NOT_FOUND)
+        
         serializer = BookingSerializer(booking, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -101,8 +104,6 @@ def update_booking(request, phone):
 
         return custom_response("Validation failed", status.HTTP_400_BAD_REQUEST, serializer.errors)
 
-    except Booking.DoesNotExist:
-        return custom_response("Booking not found", status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return custom_response(f"Internal server error: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
 
