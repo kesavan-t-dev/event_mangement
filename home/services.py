@@ -4,16 +4,21 @@ from rest_framework import status
 from rest_framework.response import Response
 
 def get_all_organisers():
-    return  OrganiserSerializer(Organiser.objects.all(), many=True).data
+    organisers = Organiser.objects.all()
+    serializer = OrganiserSerializer(organisers, many=True)
+    return custom_response("Organisers retrieved successfully", status.HTTP_200_OK, serializer.data)
 
 def get_all_events():
-    return EventSerializer(Event.objects.all(), many=True).data
+    events = Event.objects.all()
+    serializer = EventSerializer(events, many=True)
+    return custom_response("Events retrieved successfully", status.HTTP_200_OK, serializer.data)
 
-def get_all_users():
-    return UserSerializer(User.objects.all(), many=True).data
+def get_all_users():users = User.objects.all()
+    serializer = UserSerializer(users, many=True)
+    return custom_response("Users retrieved successfully", status.HTTP_200_OK, serializer.data)
 
 
-def update_organiser(request, pk):
+def update_organiser(request, phone):
     try:
         if request.method != 'PATCH':
             return custom_response(
@@ -21,7 +26,7 @@ def update_organiser(request, pk):
                 status.HTTP_405_METHOD_NOT_ALLOWED
             )
 
-        organiser = Organiser.objects.get(pk=pk)
+        organiser = Organiser.objects.get(phone=phone)
 
         serializer = OrganiserSerializer(organiser, data=request.data, partial=True)
         if serializer.is_valid():
@@ -75,7 +80,7 @@ def user_create(request):
     except Exception as e:
         return custom_response(f"Internal server error: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-def update_booking(request, pk):
+def update_booking(request, phone):
     try:
         if request.method != 'PUT':
             return custom_response(
@@ -83,7 +88,7 @@ def update_booking(request, pk):
                 status.HTTP_405_METHOD_NOT_ALLOWED
             )
 
-        booking = Booking.objects.get(pk=pk)
+        booking = Booking.objects.get(phone=phone)
 
         serializer = BookingSerializer(booking, data=request.data)
         if serializer.is_valid():
