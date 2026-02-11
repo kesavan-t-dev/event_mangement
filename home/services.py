@@ -93,14 +93,34 @@ def update_booking(request, phone):
         if not booking:
             return custom_response("No booking found for this phone", status.HTTP_404_NOT_FOUND)
         
-        serializer = BookingSerializer(booking, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return custom_response(
-                "Booking updated successfully (PUT)",
-                status.HTTP_200_OK,
-                serializer.data
-            )
+        new_event_id = request.data.get('event')
+        if new_event_id and int(new_event_id) != booking.event.id:
+            new_event = Event.object.get(pk = new_event_id)
+
+            if new_event.available_seat <= 0:
+                return custom_response("No seats available", status.HTTP_404_NOT_FOUND)
+            old_event = booking.event
+
+            new_event.available_seat = F('available_seat') - 1
+            new_event.save()
+
+            old_event.available_seat = F('available_seat') + 1
+            old_event.save()
+            serializer = BookingSerializer(booking, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return custom_response("Booking updated successfully", 200, serializer.data)
+            else:
+                # MANUAL ROLLBACK: Serializer failed, so give the seats back
+                new_event.available_seat = F('available_seat') + 1
+                new_event.save()
+                old_event.available_seat = F('available_seat') - 1
+                old_event.save()
+                return custom_response(
+                    "Booking updated successfully (PUT)",
+                    status.HTTP_200_OK,
+                    serializer.data
+                )
 
         return custom_response("Validation failed", status.HTTP_400_BAD_REQUEST, serializer.errors)
 
