@@ -2,7 +2,7 @@ from .models import Organiser, Event, User, Booking
 from .serializers import OrganiserSerializer, EventSerializer, UserSerializer, BookingSerializer
 from rest_framework import status
 from rest_framework.response import Response
-
+from django.db.models import F
 def get_all_organisers():
     organisers = Organiser.objects.all()
     serializer = OrganiserSerializer(organisers, many=True)
@@ -13,7 +13,8 @@ def get_all_events():
     serializer = EventSerializer(events, many=True)
     return custom_response("Events retrieved successfully", status.HTTP_200_OK, serializer.data)
 
-def get_all_users():users = User.objects.all()
+def get_all_users():
+    users = User.objects.all()
     serializer = UserSerializer(users, many=True)
     return custom_response("Users retrieved successfully", status.HTTP_200_OK, serializer.data)
 
@@ -60,7 +61,7 @@ def event_create(request):
         return custom_response("Validation failed", status.HTTP_400_BAD_REQUEST, serializer.errors)
 
     except Exception as e:
-        return custom_response(f"Internal server error: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return custom_response(f"Internal server error: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR, serializer.errors)
 
 def user_create(request):
     try:
@@ -78,13 +79,13 @@ def user_create(request):
         return custom_response("Validation failed", status.HTTP_400_BAD_REQUEST, serializer.errors)
 
     except Exception as e:
-        return custom_response(f"Internal server error: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return custom_response(f"Internal server error: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR, serializer.errors)
 
 def update_booking(request, phone):
     try:
         if request.method != 'PUT':
             return custom_response(
-                f"Method {request.method} not allowed. Allowed: PUT",
+                "Method not allowed. Allowed: PUT",
                 status.HTTP_405_METHOD_NOT_ALLOWED
             )
         user = User.objects.get(phone=phone)
@@ -106,24 +107,18 @@ def update_booking(request, phone):
 
             old_event.available_seat = F('available_seat') + 1
             old_event.save()
+
             serializer = BookingSerializer(booking, data=request.data)
             if serializer.is_valid():
                 serializer.save()
-                return custom_response("Booking updated successfully", 200, serializer.data)
+                return custom_response("Booking updated successfully", status.HTTP_200_OK, serializer.data)
             else:
-                # MANUAL ROLLBACK: Serializer failed, so give the seats back
                 new_event.available_seat = F('available_seat') + 1
                 new_event.save()
                 old_event.available_seat = F('available_seat') - 1
                 old_event.save()
-                return custom_response(
-                    "Booking updated successfully (PUT)",
-                    status.HTTP_200_OK,
-                    serializer.data
-                )
-
-        return custom_response("Validation failed", status.HTTP_400_BAD_REQUEST, serializer.errors)
-
+                return custom_response("Validation failed", status.HTTP_400_BAD_REQUEST, serializer.errors)
+        
     except Exception as e:
         return custom_response(f"Internal server error: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
 
