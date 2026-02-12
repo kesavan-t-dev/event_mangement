@@ -3,6 +3,7 @@ from .serializers import OrganiserSerializer, EventSerializer, UserSerializer, B
 from rest_framework import status
 from rest_framework.response import Response
 from django.db.models import F
+from datetime import datetime, date
 
 def get_all_organisers():
     organiser_id = Organiser.objects.all()
@@ -30,9 +31,15 @@ def event_create(request):
     title = request.data.get('event_title')
     event_date = request.data.get('date')
     start_time = request.data.get('start_time')
+    date_obj = datetime.strptime(event_date, "%Y-%m-%d").date()
     if Event.objects.filter(event_title=title, date=event_date, start_time=start_time).exists():
         return custom_response(
-            f"An event is already scheduled", 
+            f"An event is already Booked !", 
+            400
+        )
+    if date_obj < date.today():
+        return custom_response(
+            "Past date is not allowed",
             400
         )
 
@@ -81,7 +88,7 @@ def user_event_register(request):
     if Booking.objects.filter(user=user_obj, event=event_obj).exists():
         return custom_response("User already registered", 400)
 
-    if event_obj.available_seat <= 0:
+    if event_obj.available_seats <= 0:
         return custom_response("No seats available", 400)
 
     new_booking = Booking.objects.create(
@@ -90,7 +97,7 @@ def user_event_register(request):
         is_active=True
     )
     
-    event_obj.available_seat = F('available_seat') - 1
+    event_obj.available_seats = F('available_seats') - 1
     event_obj.save()
     serializer = BookingSerializer(new_booking)
     
