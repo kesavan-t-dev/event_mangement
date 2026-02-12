@@ -2,7 +2,7 @@ import jwt
 import datetime
 from django.conf import settings
 
-def generate_jwt_tokens(account, account_type):
+def generate_jwt_token(account, account_type):
     uid = str(account.user_id) if account_type == "user" else str(account.organiser_id)
     now = datetime.datetime.utcnow()
     

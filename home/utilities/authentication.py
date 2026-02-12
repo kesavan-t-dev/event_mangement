@@ -1,10 +1,10 @@
 import jwt
 from django.conf import settings
-from models import User, Organiser
+from ..models import User, Organiser
 from rest_framework import status
-from services import custom_response
 
 def verify_token(request):
+    from home.services import custom_response
     auth_header = request.headers.get('Authorization')
     if not auth_header:
         return None, custom_response("Authentication token is missing", status.HTTP_401_UNAUTHORIZED)
@@ -23,13 +23,13 @@ def verify_token(request):
     except Exception as e:
         return custom_response(f"Authentication error: {str(e)}", status.HTTP_401_UNAUTHORIZED)
 
-    password = payload.get('password')
+    user_id = payload.get('user_id')
     account_type = payload.get('type')
 
     if account_type == "user":
-        account = User.objects.filter(password=password).first()
+        account = User.objects.filter(pk=user_id).first()
     else:
-        account = Organiser.objects.filter(password=password).first()
+        account = Organiser.objects.filter(pk=user_id).first()
 
     if not account:
         return None, custom_response("Account not found", status.HTTP_404_NOT_FOUND)

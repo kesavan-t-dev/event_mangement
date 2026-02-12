@@ -45,7 +45,10 @@ def event_update(request, id):
 def user_update(request, id):
     return services.user_update(request, id)
 
-
 @api_view(['POST'])
 def login_api(request):
     return services.login(request)
+
+@api_view(['GET'])
+def my_subscription(request):
+    return services.my_events(request)

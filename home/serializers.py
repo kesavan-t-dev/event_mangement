@@ -8,6 +8,7 @@ class OrganiserSerializer(serializers.ModelSerializer):
 
 
 class EventSerializer(serializers.ModelSerializer):
+    
     class Meta:
         model = Event
         fields = [
@@ -30,6 +31,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class BookingSerializer(serializers.ModelSerializer):
+    event = EventSerializer(read_only=True) 
     class Meta:
         model = Booking
         fields = ['booking_id','user','event']

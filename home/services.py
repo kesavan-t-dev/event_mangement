@@ -7,7 +7,7 @@ from django.db.models import F
 from datetime import datetime, date
 from .utilities.token import generate_jwt_token
 from django.conf import settings
-
+from .utilities.authentication import verify_token
 
 def get_all_organisers():
     organiser_id = Organiser.objects.all()
@@ -26,11 +26,11 @@ def get_all_users():
 
 
 def event_create(request):
-    if request.method != 'POST':
-        return custom_response(
-            f"Method {request.method} not allowed. Allowed: POST",
-            status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+    # if request.method != 'POST':
+    #     return custom_response(
+    #         f"Method {request.method} not allowed. Allowed: POST",
+    #         status.HTTP_405_METHOD_NOT_ALLOWED
+    #     )
     
     title = request.data.get('event_title')
     event_date = request.data.get('date')
@@ -80,7 +80,6 @@ def user_event_register(request):
         
     user_id = request.data.get('user_id')
     event_id = request.data.get('event_id')
-
     user_obj = User.objects.filter(pk=user_id).first()
     if not user_obj:
         return custom_response("User not found", 404)
@@ -91,6 +90,9 @@ def user_event_register(request):
 
     if Booking.objects.filter(user=user_obj, event=event_obj).exists():
         return custom_response("User already registered", 400)
+
+    if event_obj.date < date.today():
+        return custom_response("Booking failed: This event has already expired.", 400)
 
     if event_obj.available_seats <= 0:
         return custom_response("No seats available", 400)
@@ -107,20 +109,35 @@ def user_event_register(request):
     
     return custom_response("Registration successful", 201, serializer.data)
 
-def event_update(request, id):
-    if request.method != 'PUT':
-        return custom_response(f"Method {request.method} not allowed. Allowed: PUT", 405)
+def event_update(request,  event_id):
+    auth_user, error_response = verify_token(request)
+    if error_response:
+        return error_response
 
-    event_instance = Event.objects.filter(pk=id).first()
-    if not event_instance:
+    event = Event.objects.filter(event_id=event_id, organisers_id=auth_user.organiser_id).first()
+    if not event:
         return custom_response("Event not found", 404)
 
-    serializer = EventSerializer(event_instance, data=request.data)
+    data = request.data
+    new_total = int(data.get('total_seats', event.total_seats))
+    
+    booked_seats = event.total_seats - event.available_seats
+
+    if new_total < booked_seats:
+        return custom_response(f"Cannot reduce total seats to {new_total}. {booked_seats} seats are already booked.", 400)
+
+    new_available = new_total - booked_seats
+
+    data['available_seats'] = new_available
+    data['total_seats'] = new_total
+
+    serializer = EventSerializer(event, data=data, partial=True)
     if serializer.is_valid():
         serializer.save()
         return custom_response("Event updated successfully", 200, serializer.data)
-    
-    return custom_response("Validation failed", 400, serializer.errors)
+
+    return custom_response("Update failed", 400, serializer.errors)
+
 
 
 def user_update(request, id):
@@ -142,7 +159,7 @@ def login(request):
     email = request.data.get('username')
     password = request.data.get('password')
 
-    account = User.objects.filter(email=email, password=password).first()
+    account = User.objects.filter(email =email, password=password).first()
     account_type = "user"
     serializer_class = UserSerializer
 
@@ -154,16 +171,33 @@ def login(request):
     if not account:
         return custom_response("Invalid Credentials", 401)
 
-    token = generate_jwt_token(account, account_type)
-
+    access_token, refresh_token = generate_jwt_token(account, account_type)
+    
     account_data = serializer_class(account).data
 
     return custom_response("Login Successful", 200, {
-        'token': token,
+        'access': access_token,
+        'refresh': refresh_token,
         'account_type': account_type,
         'user_details': account_data
     })
 
+def my_events(request):
+    auth_user, error_response = verify_token(request)
+    if error_response:
+        return error_response
+
+    if auth_user.account_type != "user":
+        return custom_response("Access Denied", 403)
+
+    my_bookings = Booking.objects.filter(
+        user_id=auth_user.user_id, 
+        is_active=True
+    ).select_related('event')
+    
+    serializer = BookingSerializer(my_bookings, many=True)
+    
+    return custom_response("My Subscriptions", 200, serializer.data)
 
 def refresh_access_token(request):
     refresh_token = request.data.get('refresh')
@@ -192,6 +226,26 @@ def refresh_access_token(request):
         return custom_response("Refresh token expired. Please login again.", 401)
     except jwt.InvalidTokenError:
         return custom_response("Invalid refresh token", 401)
+    
+
+
+def delete_event(request, event_id):
+    auth_user, error_response = verify_token(request)
+    if error_response:
+        return error_response
+
+    if auth_user.account_type != "organiser":
+        return custom_response("Access Denied: Only Organisers can delete events", 403)
+
+    event = Event.objects.filter(event_id=event_id, organisers_id=auth_user.organiser_id).first()
+    
+    if not event:
+        return custom_response("Event not found or you don't have permission", 404)
+
+    event.is_active = False 
+    event.save()
+
+    return custom_response("Event deleted successfully", 200)
 
 def custom_response(message, status_code, data=None):
     return Response({
