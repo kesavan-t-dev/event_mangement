@@ -1,9 +1,13 @@
+import jwt
 from .models import Organiser, Event, User, Booking
 from .serializers import OrganiserSerializer, EventSerializer, UserSerializer, BookingSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from django.db.models import F
 from datetime import datetime, date
+from .utilities.token import generate_jwt_token
+from django.conf import settings
+
 
 def get_all_organisers():
     organiser_id = Organiser.objects.all()
@@ -133,6 +137,61 @@ def user_update(request, id):
         return custom_response("User updated successfully", 200, serializer.data)
     
     return custom_response("Validation failed", 400, serializer.errors)
+
+def login(request):
+    email = request.data.get('username')
+    password = request.data.get('password')
+
+    account = User.objects.filter(email=email, password=password).first()
+    account_type = "user"
+    serializer_class = UserSerializer
+
+    if not account:
+        account = Organiser.objects.filter(email=email, password=password).first()
+        account_type = "organiser"
+        serializer_class = OrganiserSerializer
+
+    if not account:
+        return custom_response("Invalid Credentials", 401)
+
+    token = generate_jwt_token(account, account_type)
+
+    account_data = serializer_class(account).data
+
+    return custom_response("Login Successful", 200, {
+        'token': token,
+        'account_type': account_type,
+        'user_details': account_data
+    })
+
+
+def refresh_access_token(request):
+    refresh_token = request.data.get('refresh')
+    if not refresh_token:
+        return custom_response("Refresh token is required", 400)
+    try:
+        payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=['HS256'])
+        user_id = payload.get('user_id')
+        account_type = payload.get('type')
+        if account_type == "user":
+            account = User.objects.filter(pk=user_id).first()
+        else:
+            account = Organiser.objects.filter(pk=user_id).first()
+        if not account:
+            return custom_response("Account no longer exists", 404)
+        now = datetime.datetime.utcnow()
+        new_access_payload = {
+            'user_id': user_id,
+            'type': account_type,
+            'exp': now + datetime.timedelta(hours=1),
+            'iat': now,
+        }
+        new_access_token = jwt.encode(new_access_payload, settings.SECRET_KEY, algorithm='HS256')
+        return custom_response("Token refreshed", 200, {'access': new_access_token})
+    except jwt.ExpiredSignatureError:
+        return custom_response("Refresh token expired. Please login again.", 401)
+    except jwt.InvalidTokenError:
+        return custom_response("Invalid refresh token", 401)
 
 def custom_response(message, status_code, data=None):
     return Response({

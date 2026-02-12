@@ -3,6 +3,7 @@ INSERT INTO organiser (
     name,
     phone,
     email,
+    password,
     updated_at,
     created_at,
     is_active
@@ -12,6 +13,7 @@ INSERT INTO organiser (
     'Google Meet',
     '9638527410',
     'contact@gdg.com',
+    'contact963852',
     NOW(),
     NOW(),
     TRUE
@@ -21,6 +23,7 @@ INSERT INTO organiser (
     'FOSS Conferences',
     '9876543210',
     'info@globalconf.com',
+    'info987654',
     NOW(),
     NOW(),
     FALSE
@@ -28,8 +31,9 @@ INSERT INTO organiser (
 (
     gen_random_uuid(),
     'Innovate tecg Meetups',
-    '+91-9876543210',
+    '9876543210',
     'hello@innovate.com',
+    'hello98765',
     NOW(),
     NOW(),
     TRUE
