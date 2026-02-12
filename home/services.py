@@ -156,7 +156,7 @@ def user_update(request, id):
     return custom_response("Validation failed", 400, serializer.errors)
 
 def login(request):
-    email = request.data.get('username')
+    email = request.data.get('email')
     password = request.data.get('password')
 
     account = User.objects.filter(email =email, password=password).first()
@@ -178,8 +178,8 @@ def login(request):
     return custom_response("Login Successful", 200, {
         'access': access_token,
         'refresh': refresh_token,
-        'account_type': account_type,
-        'user_details': account_data
+        # 'account_type': account_type,
+        # 'user_details': account_data
     })
 
 def my_events(request):
