@@ -53,6 +53,6 @@ def login_api(request):
 def my_subscription(request):
     return services.my_events(request)
 
-@api_view(['POST']):
+@api_view(['POST'])
 def refresh_token(request):
     return services.refresh_access_token(request)

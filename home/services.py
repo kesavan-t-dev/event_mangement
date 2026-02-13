@@ -4,7 +4,8 @@ from .serializers import OrganiserSerializer, EventSerializer, UserSerializer, B
 from rest_framework import status
 from rest_framework.response import Response
 from django.db.models import F
-from datetime import datetime, date
+from datetime import date
+from datetime import datetime
 from .utilities.token import generate_jwt_token
 from django.conf import settings
 from .utilities.authentication import verify_token
@@ -92,7 +93,7 @@ def user_event_register(request):
         return custom_response("User already registered", 400)
 
     if event_obj.date < date.today():
-        return custom_response("Booking failed: This event has already expired.", 400)
+        return custom_response("This event has already expired !", 400)
 
     if event_obj.available_seats <= 0:
         return custom_response("No seats available", 400)
@@ -233,6 +234,7 @@ def refresh_access_token(request):
             account = Organiser.objects.filter(pk=user_id).first()
         if not account:
             return custom_response("Account no longer exists", 404)
+        
         now = datetime.datetime.utcnow()
         new_access_payload = {
             'user_id': user_id,
