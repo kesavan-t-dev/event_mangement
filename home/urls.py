@@ -12,7 +12,7 @@ urlpatterns = [
     path('update_event/<uuid:id>/', views.event_update, name='event_update'),
     path('update_user/<uuid:id>/', views.user_update, name='user_update'), 
     path('login/',views.login_api, name='login'),
-    path('my_events/', views.my_subscription, name='my_events'),
+    # path('my_events/', views.my_subscription, name='my_events'),
     path('refresh_token/', views.refresh_token, name='refresh-token'),
 
 

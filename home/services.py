@@ -1,5 +1,5 @@
 import jwt
-from .models import Organiser, Event, User, Booking
+# from .models import Organiser, Event, User, Booking
 from .serializers import OrganiserSerializer, EventSerializer, UserSerializer, BookingSerializer
 from rest_framework import status
 from rest_framework.response import Response
@@ -230,8 +230,8 @@ def refresh_access_token(request):
         account_type = payload.get('type')
         if account_type == "user":
             account = User.objects.filter(pk=user_id).first()
-        else:
-            account = Organiser.objects.filter(pk=user_id).first()
+        # else:
+        #     account = Organiser.objects.filter(pk=user_id).first()
         if not account:
             return custom_response("Account no longer exists", 404)
         
