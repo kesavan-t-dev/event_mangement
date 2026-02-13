@@ -28,8 +28,8 @@ def verify_token(request):
 
     if account_type == "user":
         account = User.objects.filter(pk=user_id).first()
-    else:
-        account = Organiser.objects.filter(pk=user_id).first()
+    # else:
+    #     account = Organiser.objects.filter(pk=user_id).first()
 
     if not account:
         return None, custom_response("Account not found", status.HTTP_404_NOT_FOUND)

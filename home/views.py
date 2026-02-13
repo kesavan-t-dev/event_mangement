@@ -52,3 +52,7 @@ def login_api(request):
 @api_view(['GET'])
 def my_subscription(request):
     return services.my_events(request)
+
+@api_view(['POST']):
+def refresh_token(request):
+    return services.refresh_access_token(request)

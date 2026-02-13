@@ -110,6 +110,11 @@ def user_event_register(request):
     return custom_response("Registration successful", 201, serializer.data)
 
 def event_update(request,  event_id):
+    if request.method != 'POST':
+        return custom_response(
+            "Method not allowed. Allowed: POST",
+            status.HTTP_405_METHOD_NOT_ALLOWED
+        )
     auth_user, error_response = verify_token(request)
     if error_response:
         return error_response
@@ -156,22 +161,27 @@ def user_update(request, id):
     return custom_response("Validation failed", 400, serializer.errors)
 
 def login(request):
+    if request.method != 'POST':
+        return custom_response(
+            "Method not allowed. Allowed: POST",
+            status.HTTP_405_METHOD_NOT_ALLOWED
+        )
     email = request.data.get('email')
     password = request.data.get('password')
 
     account = User.objects.filter(email =email, password=password).first()
-    account_type = "user"
+    # account_type = "user"
     serializer_class = UserSerializer
 
-    if not account:
-        account = Organiser.objects.filter(email=email, password=password).first()
-        account_type = "organiser"
-        serializer_class = OrganiserSerializer
+    # if not account:
+    #     account = Organiser.objects.filter(email=email, password=password).first()
+    #     account_type = "organiser"
+    #     serializer_class = OrganiserSerializer
 
     if not account:
         return custom_response("Invalid Credentials", 401)
 
-    access_token, refresh_token = generate_jwt_token(account, account_type)
+    access_token, refresh_token = generate_jwt_token(account) #, account_type
     
     account_data = serializer_class(account).data
 
@@ -183,6 +193,11 @@ def login(request):
     })
 
 def my_events(request):
+    if request.method != 'POST':
+        return custom_response(
+            "Method not allowed. Allowed: POST",
+            status.HTTP_405_METHOD_NOT_ALLOWED
+        )
     auth_user, error_response = verify_token(request)
     if error_response:
         return error_response
@@ -200,6 +215,11 @@ def my_events(request):
     return custom_response("My Subscriptions", 200, serializer.data)
 
 def refresh_access_token(request):
+    if request.method != 'POST':
+        return custom_response(
+            "Method not allowed. Allowed: POST",
+            status.HTTP_405_METHOD_NOT_ALLOWED
+        )
     refresh_token = request.data.get('refresh')
     if not refresh_token:
         return custom_response("Refresh token is required", 400)
@@ -227,25 +247,6 @@ def refresh_access_token(request):
     except jwt.InvalidTokenError:
         return custom_response("Invalid refresh token", 401)
     
-
-
-def delete_event(request, event_id):
-    auth_user, error_response = verify_token(request)
-    if error_response:
-        return error_response
-
-    if auth_user.account_type != "organiser":
-        return custom_response("Access Denied: Only Organisers can delete events", 403)
-
-    event = Event.objects.filter(event_id=event_id, organisers_id=auth_user.organiser_id).first()
-    
-    if not event:
-        return custom_response("Event not found or you don't have permission", 404)
-
-    event.is_active = False 
-    event.save()
-
-    return custom_response("Event deleted successfully", 200)
 
 def custom_response(message, status_code, data=None):
     return Response({
